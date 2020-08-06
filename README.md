@@ -1,2 +1,2 @@
 # countdown-backend
-Countdown the game show backend
+Countdown the TV show backend
