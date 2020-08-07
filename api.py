@@ -2,11 +2,13 @@ from flask import Flask, session
 from flask_restx import Api, Resource
 from datetime import datetime, timedelta
 from random import choice
+from flask_cors import CORS
 
 from parsers import start_parser, letters_parser, numbers_parser, submit_parser
 from constants import consonants, vowels
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app)
 
 app.secret_key = b'\xb3A\x942\x0fO\x91\x92\x7f\xf7$\xcf=\xa3\xe1R'

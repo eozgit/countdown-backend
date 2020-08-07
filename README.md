@@ -1,2 +1,2 @@
 # countdown-backend
-Countdown the TV show backend
+Countdown TV show clone backend
