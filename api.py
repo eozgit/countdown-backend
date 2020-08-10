@@ -2,7 +2,8 @@ from flask import Flask, session
 from flask_restx import Api, Resource
 from datetime import datetime, timedelta
 from flask_cors import CORS
-from random import choice
+from random import choice, random
+from os import environ
 
 
 from parsers import start_parser, letters_parser, numbers_parser, submit_parser
@@ -14,7 +15,7 @@ app = Flask(__name__)
 CORS(app, supports_credentials=True)
 api = Api(app)
 
-app.secret_key = b'\xb3A\x942\x0fO\x91\x92\x7f\xf7$\xcf=\xa3\xe1R'
+app.secret_key = environ['secret_key']
 
 
 @api.route('/time')
@@ -38,11 +39,45 @@ class Start(Resource):
 class Letters(Resource):
     def post(self):
         args = letters_parser.parse_args()
-        letters = consonants if args['type'] == 'consonant' else vowels
-        letters = list(letters.keys())
-        letter = choice(letters)
+        letter = self.get_letter(args['type'] == 'consonant')
         session['letters'] = letter if 'letters' not in session else session['letters'] + letter
         return {'letter': letter, 'all': session['letters']}
+
+    consonants = None
+    vowels = None
+
+    def get_letter(self, is_consonant: bool):
+        if is_consonant:
+            if self.consonants == None:
+                self.set_consonant_cumulative_freqs()
+        else:
+            if self.vowels == None:
+                self.set_vowel_cumulative_freqs()
+
+        print(self.vowels)
+
+        letters = self.consonants if is_consonant else self.vowels
+        n = random()
+        l = [item for item in letters.items() if item[1] >= n]
+        return min(l, key=lambda item: item[1])[0]
+
+    def set_consonant_cumulative_freqs(self):
+        self.consonants = {}
+        sum = 0
+        for (letter, freq) in consonants.items():
+            sum += freq
+            self.consonants[letter] = sum
+        for letter in self.consonants.keys():
+            self.consonants[letter] /= sum
+
+    def set_vowel_cumulative_freqs(self):
+        self.vowels = {}
+        sum = 0
+        for (letter, freq) in vowels.items():
+            sum += freq
+            self.vowels[letter] = sum
+        for letter in self.vowels.keys():
+            self.vowels[letter] /= sum
 
 
 @api.route('/numbers')
