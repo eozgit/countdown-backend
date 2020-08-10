@@ -8,6 +8,7 @@ from random import choice
 from parsers import start_parser, letters_parser, numbers_parser, submit_parser
 from constants import consonants, vowels
 from anagram import get_anagrams
+from oxford import get_definition, get_root
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -64,12 +65,13 @@ class Submit(Resource):
         args = submit_parser.parse_args()
         answer = args['answer']
         if session['round'] == 'letters':
-            opponents_answer = choice(get_anagrams(session['letters']))
-            status = check_letters(answer)
+            anagrams = get_anagrams(session['letters'])
+            opponents_answer = choice(anagrams) if anagrams else ''
+            response = check_letters(answer, opponents_answer)
         else:
-            status = check_numbers(answer)
+            response = check_numbers(answer)
         session.clear()
-        return {'status': status}
+        return response
 
 
 def get_large_numbers(count: int):
@@ -92,8 +94,30 @@ def get_small_numbers(count: int):
     return numbers
 
 
-def check_letters(answer: str):
-    return 'won' if len(answer) > 0 else 'lost'
+def check_letters(p1_answer: str, p2_answer: str):
+    defn_1 = search_definition(p1_answer)
+    defn_2 = search_definition(p2_answer)
+    won = True
+    if not defn_1:
+        won = False
+    if defn_2 and len(p2_answer) > len(p1_answer):
+        won = False
+    return {
+        'answer1': p1_answer,
+        'defn1': defn_1,
+        'answer2': p2_answer,
+        'defn2': defn_2,
+        'won': won
+    }
+
+
+def search_definition(word: str):
+    defn = get_definition(word)
+    if not defn:
+        root = get_root(word)
+        if root and root != word:
+            defn = get_definition(root)
+    return defn
 
 
 def check_numbers(answer: str):
