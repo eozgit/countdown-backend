@@ -4,13 +4,13 @@ from datetime import datetime, timedelta
 from flask_cors import CORS
 from random import choice, random, randint
 from os import environ
-
+import re
 
 from parsers import start_parser, letters_parser, numbers_parser, submit_parser
 from constants import consonants, vowels
 from anagram import get_anagrams
 from oxford import get_definition, get_root
-from solver import Solver
+from solver import Solver, Solution
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -25,12 +25,12 @@ class Time(Resource):
         return {'time': str(datetime.now())}
 
 
-@api.route('/solve/<int:count>')
+@api.route('/solve/<int:count>/<int:away>')
 class Solve(Resource):
-    def get(self, count):
-        numbers = get_small_numbers(5 - count) + get_large_numbers(count)
+    def get(self, count, away):
+        numbers = get_small_numbers(6 - count) + get_large_numbers(count)
         target = randint(101, 999)
-        solutions = Solver(numbers, target).solve()
+        solutions = Solver(numbers, target, away).solve()
         arr = [{'steps': soln.steps, 'away': soln.away} for soln in solutions]
         resp = {'numbers': numbers, 'target': target, 'solutions': arr}
         return resp
@@ -116,7 +116,11 @@ class Submit(Resource):
             opponents_answer = choice(anagrams) if anagrams else ''
             response = check_letters(answer, opponents_answer)
         else:
-            response = check_numbers(answer)
+            numbers = session['numbers']
+            target = session['target']
+            target_away = randint(0, 9)
+            solutions = Solver(numbers, target, target_away).solve()
+            response = check_numbers(answer, solutions[0])
         session.clear()
         return response
 
@@ -167,8 +171,38 @@ def search_definition(word: str):
     return defn
 
 
-def check_numbers(answer: str):
-    return 'won' if len(answer) > 0 else 'lost'
+def check_numbers(p1_answer: str, p2_answer: Solution):
+    response = {
+        'answer1': '-',
+        'away1': '-',
+        'answer2': p2_answer.steps,
+        'away2': p2_answer.away,
+        'won': False
+    }
+
+    p = re.compile(r"^[\d\s\+\*\/\(\)=-]+$")
+    if not p.match(p1_answer):
+        return response
+
+    d = re.compile(r'\d+')
+    no = d.findall(p1_answer)
+    numbers = session['numbers']
+    for n in no:
+        m = int(n)
+        print(f"list: {numbers}, m: {m}, includes: {m in numbers}")
+        if m not in numbers:
+            return response
+        numbers.remove(m)
+
+    answer = eval(p1_answer)
+    target = session["target"]
+    away = abs(target - answer)
+    response['answer1'] = f"{p1_answer} = {answer}"
+    response['away1'] = away
+    if away <= p2_answer.away:
+        response['won'] = True
+
+    return response
 
 
 if __name__ == '__main__':
