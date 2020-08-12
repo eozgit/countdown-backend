@@ -2,7 +2,7 @@ from flask import Flask, session
 from flask_restx import Api, Resource
 from datetime import datetime, timedelta
 from flask_cors import CORS
-from random import choice, random
+from random import choice, random, randint
 from os import environ
 
 
@@ -10,6 +10,7 @@ from parsers import start_parser, letters_parser, numbers_parser, submit_parser
 from constants import consonants, vowels
 from anagram import get_anagrams
 from oxford import get_definition, get_root
+from solver import Solver
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -22,6 +23,17 @@ app.secret_key = environ['secret_key']
 class Time(Resource):
     def get(self):
         return {'time': str(datetime.now())}
+
+
+@api.route('/solve/<int:count>')
+class Solve(Resource):
+    def get(self, count):
+        numbers = get_small_numbers(5 - count) + get_large_numbers(count)
+        target = randint(101, 999)
+        solutions = Solver(numbers, target).solve()
+        arr = [{'steps': soln.steps, 'away': soln.away} for soln in solutions]
+        resp = {'numbers': numbers, 'target': target, 'solutions': arr}
+        return resp
 
 
 @api.route('/start')
@@ -54,8 +66,6 @@ class Letters(Resource):
             if self.vowels == None:
                 self.set_vowel_cumulative_freqs()
 
-        print(self.vowels)
-
         letters = self.consonants if is_consonant else self.vowels
         n = random()
         l = [item for item in letters.items() if item[1] >= n]
@@ -86,8 +96,10 @@ class Numbers(Resource):
         args = numbers_parser.parse_args()
         count = args['count']
         numbers = get_small_numbers(6 - count) + get_large_numbers(count)
+        target = randint(101, 999)
         session['numbers'] = numbers
-        return {'numbers': numbers}
+        session['target'] = target
+        return {'numbers': numbers, 'target': target}
 
 
 @api.route('/submit')
