@@ -1,4 +1,4 @@
-from flask import Flask, session, send_from_directory
+from flask import Flask, session, send_from_directory, abort
 from flask_restx import Api, Resource
 from datetime import datetime, timedelta
 from flask_cors import CORS
@@ -56,21 +56,34 @@ class Start(Resource):
 class Letters(Resource):
     def post(self):
         args = letters_parser.parse_args()
-        letter = self.get_letter(args['type'] == 'consonant')
-        session['letters'] = letter if 'letters' not in session else session['letters'] + letter
+        is_consonant = args['type'] == 'consonant'
+        letters_initd = 'letters' in session
+
+        if letters_initd:
+            selected_letters = session['letters']
+            left = 9 - len(selected_letters)
+            if is_consonant:
+                vowel_count = len(
+                    [letter for letter in selected_letters if letter in vowels.keys()])
+                required_vowel_count = max([3 - vowel_count, 0])
+                if required_vowel_count >= left:
+                    abort(400, "Must choose vowel")
+            else:
+                consonant_count = len(
+                    [letter for letter in selected_letters if letter in consonants.keys()])
+                required_consonant_count = max([4 - consonant_count, 0])
+                if required_consonant_count >= left:
+                    abort(400, "Must choose consonant")
+
+        letter = self.get_letter(is_consonant)
+        session['letters'] = letter if not letters_initd else session['letters'] + letter
         return {'letter': letter, 'all': session['letters']}
 
-    consonants = None
-    vowels = None
+    def __init__(self, api=None, *args, **kwargs):
+        self.set_consonant_cumulative_freqs()
+        self.set_vowel_cumulative_freqs()
 
     def get_letter(self, is_consonant: bool):
-        if is_consonant:
-            if self.consonants == None:
-                self.set_consonant_cumulative_freqs()
-        else:
-            if self.vowels == None:
-                self.set_vowel_cumulative_freqs()
-
         letters = self.consonants if is_consonant else self.vowels
         n = random()
         l = [item for item in letters.items() if item[1] >= n]
