@@ -1,4 +1,4 @@
-from flask import Flask, session
+from flask import Flask, session, send_from_directory
 from flask_restx import Api, Resource
 from datetime import datetime, timedelta
 from flask_cors import CORS
@@ -17,6 +17,11 @@ CORS(app, supports_credentials=True)
 api = Api(app)
 
 app.secret_key = environ['secret_key']
+
+
+@app.route('/dist/<path:path>')
+def send_js(path):
+    return send_from_directory('dist', path)
 
 
 @api.route('/time')
@@ -189,7 +194,6 @@ def check_numbers(p1_answer: str, p2_answer: Solution):
     numbers = session['numbers']
     for n in no:
         m = int(n)
-        print(f"list: {numbers}, m: {m}, includes: {m in numbers}")
         if m not in numbers:
             return response
         numbers.remove(m)
