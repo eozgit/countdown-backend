@@ -1,7 +1,16 @@
 ### Countdown: Letters & Numbers
 
 
-[Video](https://youtu.be/Bc0HKT3ybjA)
+##### Preview
+
+<img src='./countdown.gif' alt='Countdown preview' width="300" />
+
+
+##### Watch in HD
+
+<a href="https://youtu.be/aB3VXOgIAFY">
+  <img src="./countdown.png" alt="Countdown" width="300" />
+</a>
 
 
 [Frontend Code](https://github.com/eozgit/countdown-frontend)

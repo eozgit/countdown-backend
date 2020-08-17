@@ -15,7 +15,8 @@ def get_definition(word: str):
     json = Box(json)
     if 'error' in json:
         return False
-    return json.results[0].lexicalEntries[0].entries[0].senses[0].definitions[0]
+    sense = json.results[0].lexicalEntries[0].entries[0].senses[0]
+    return sense.definitions[0] if 'definitions' in sense else False
 
 
 def get_root(word: str):
